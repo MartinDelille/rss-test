@@ -101,6 +101,8 @@ def generate_rss_feed(articles, author_name, author_url):
         ET.SubElement(item, "guid").text = article['url']
         ET.SubElement(item, "pubDate").text = datetime.now().strftime("%a, %d %b %Y %H:%M:%S GMT")
     
+    # Format the XML with proper indentation
+    ET.indent(rss, space="  ", level=0)
     return ET.tostring(rss, encoding='unicode', method='xml')
 
 def main():

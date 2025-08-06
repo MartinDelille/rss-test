@@ -1,144 +1,169 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RSS Feed - Benjamin Delille (Liberation.fr)</title>
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            line-height: 1.6;
-            color: #333;
-        }
-        .header {
-            text-align: center;
-            margin-bottom: 40px;
-            padding: 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border-radius: 10px;
-        }
-        .rss-link {
-            display: inline-block;
-            background: #ff6600;
-            color: white;
-            padding: 10px 20px;
-            text-decoration: none;
-            border-radius: 5px;
-            margin: 10px;
-            font-weight: bold;
-        }
-        .rss-link:hover {
-            background: #e55a00;
-        }
-        .info-box {
-            background: #f8f9fa;
-            border-left: 4px solid #007bff;
-            padding: 15px;
-            margin: 20px 0;
-            border-radius: 5px;
-        }
-        .step {
-            background: #fff;
-            border: 1px solid #ddd;
-            margin: 15px 0;
-            padding: 15px;
-            border-radius: 8px;
-        }
-        .step h3 {
-            margin-top: 0;
-            color: #495057;
-        }
-        .code {
-            background: #f1f3f4;
-            padding: 2px 4px;
-            border-radius: 3px;
-            font-family: monospace;
-        }
-        .footer {
-            text-align: center;
-            margin-top: 40px;
-            padding-top: 20px;
-            border-top: 1px solid #ddd;
-            color: #666;
-        }
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+        line-height: 1.6;
+        color: #333;
+      }
+      .header {
+        text-align: center;
+        margin-bottom: 40px;
+        padding: 20px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 10px;
+      }
+      .rss-link {
+        display: inline-block;
+        background: #ff6600;
+        color: white;
+        padding: 10px 20px;
+        text-decoration: none;
+        border-radius: 5px;
+        margin: 10px;
+        font-weight: bold;
+      }
+      .rss-link:hover {
+        background: #e55a00;
+      }
+      .info-box {
+        background: #f8f9fa;
+        border-left: 4px solid #007bff;
+        padding: 15px;
+        margin: 20px 0;
+        border-radius: 5px;
+      }
+      .step {
+        background: #fff;
+        border: 1px solid #ddd;
+        margin: 15px 0;
+        padding: 15px;
+        border-radius: 8px;
+      }
+      .step h3 {
+        margin-top: 0;
+        color: #495057;
+      }
+      .code {
+        background: #f1f3f4;
+        padding: 2px 4px;
+        border-radius: 3px;
+        font-family: monospace;
+      }
+      .footer {
+        text-align: center;
+        margin-top: 40px;
+        padding-top: 20px;
+        border-top: 1px solid #ddd;
+        color: #666;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <div class="header">
-        <h1>🗞️ RSS Feed pour Benjamin Delille</h1>
-        <p>Articles de Liberation.fr par Benjamin Delille</p>
-        <a href="benjamin_delille_rss.xml" class="rss-link">📡 Accéder au flux RSS</a>
+      <h1>🗞️ RSS Feed pour Benjamin Delille</h1>
+      <p>Articles de Liberation.fr par Benjamin Delille</p>
+      <a href="benjamin_delille_rss.xml" class="rss-link"
+        >📡 Accéder au flux RSS</a
+      >
     </div>
 
     <div class="info-box">
-        <strong>Mise à jour automatique :</strong> Ce flux RSS est automatiquement mis à jour chaque jour à 8h UTC grâce à GitHub Actions.
+      <strong>Mise à jour automatique :</strong> Ce flux RSS est automatiquement
+      mis à jour chaque jour à 8h UTC grâce à GitHub Actions.
     </div>
 
     <h2>Comment utiliser ce flux RSS</h2>
 
     <div class="step">
-        <h3>1. URL du flux RSS</h3>
-        <p>Copiez cette URL dans votre lecteur RSS :</p>
-        <p><code class="code" id="rss-url">https://martindelille.github.io/liberation-rss-benjamin-delille/benjamin_delille_rss.xml</code></p>
-        <button onclick="copyToClipboard()">📋 Copier l'URL</button>
+      <h3>1. URL du flux RSS</h3>
+      <p>Copiez cette URL dans votre lecteur RSS :</p>
+      <p>
+        <code class="code" id="rss-url"
+          >https://martin.delille.org/rss-test/benjamin_delille_rss.xml</code
+        >
+      </p>
+      <button onclick="copyToClipboard()">📋 Copier l'URL</button>
     </div>
 
     <div class="step">
-        <h3>2. Lecteurs RSS recommandés</h3>
-        <ul>
-            <li><strong>Feedly</strong> - Interface web moderne</li>
-            <li><strong>Inoreader</strong> - Fonctionnalités avancées</li>
-            <li><strong>NetNewsWire</strong> - Application native pour Mac/iOS</li>
-            <li><strong>FreshRSS</strong> - Solution auto-hébergée</li>
-        </ul>
+      <h3>2. Lecteurs RSS recommandés</h3>
+      <ul>
+        <li><strong>Feedly</strong> - Interface web moderne</li>
+        <li><strong>Inoreader</strong> - Fonctionnalités avancées</li>
+        <li><strong>NetNewsWire</strong> - Application native pour Mac/iOS</li>
+        <li><strong>FreshRSS</strong> - Solution auto-hébergée</li>
+      </ul>
     </div>
 
     <div class="step">
-        <h3>3. Ajouter le flux</h3>
-        <p>Dans votre lecteur RSS :</p>
-        <ol>
-            <li>Cherchez l'option "Ajouter un flux" ou "Add feed"</li>
-            <li>Collez l'URL du flux RSS</li>
-            <li>Le flux sera ajouté avec le nom "Articles by Benjamin Delille - Liberation.fr"</li>
-        </ol>
+      <h3>3. Ajouter le flux</h3>
+      <p>Dans votre lecteur RSS :</p>
+      <ol>
+        <li>Cherchez l'option "Ajouter un flux" ou "Add feed"</li>
+        <li>Collez l'URL du flux RSS</li>
+        <li>
+          Le flux sera ajouté avec le nom "Articles by Benjamin Delille -
+          Liberation.fr"
+        </li>
+      </ol>
     </div>
 
     <h2>À propos</h2>
     <p>
-        Liberation.fr ne propose pas de flux RSS par auteur. Ce flux est généré automatiquement 
-        en analysant la page de Benjamin Delille et en extrayant ses derniers articles.
+      Liberation.fr ne propose pas de flux RSS par auteur. Ce flux est généré
+      automatiquement en analysant la page de Benjamin Delille et en extrayant
+      ses derniers articles.
     </p>
 
     <p>
-        <strong>Source :</strong> <a href="https://www.liberation.fr/auteur/benjamin-delille/" target="_blank">
-            Page de Benjamin Delille sur Liberation.fr
-        </a>
+      <strong>Source :</strong>
+      <a
+        href="https://www.liberation.fr/auteur/benjamin-delille/"
+        target="_blank"
+      >
+        Page de Benjamin Delille sur Liberation.fr
+      </a>
     </p>
 
     <div class="info-box">
-        <strong>Technique :</strong> Ce site utilise GitHub Pages pour héberger le flux RSS, 
-        avec GitHub Actions pour le mettre à jour automatiquement chaque jour.
+      <strong>Technique :</strong> Ce site utilise GitHub Pages pour héberger le
+      flux RSS, avec GitHub Actions pour le mettre à jour automatiquement chaque
+      jour.
     </div>
 
     <div class="footer">
-        <p>Généré automatiquement • <a href="https://github.com/MartinDelille/liberation-rss-benjamin-delille" target="_blank">Code source sur GitHub</a></p>
-        <p>Dernière mise à jour : <span id="last-update"></span></p>
+      <p>
+        Généré automatiquement •
+        <a
+          href="https://github.com/MartinDelille/liberation-rss-benjamin-delille"
+          target="_blank"
+          >Code source sur GitHub</a
+        >
+      </p>
+      <p>Dernière mise à jour : <span id="last-update"></span></p>
     </div>
 
     <script>
-        function copyToClipboard() {
-            const url = document.getElementById('rss-url').textContent;
-            navigator.clipboard.writeText(url).then(() => {
-                alert('URL copiée dans le presse-papiers !');
-            });
-        }
+      function copyToClipboard() {
+        const url = document.getElementById("rss-url").textContent;
+        navigator.clipboard.writeText(url).then(() => {
+          alert("URL copiée dans le presse-papiers !");
+        });
+      }
 
-        // Set last update time
-        document.getElementById('last-update').textContent = new Date().toLocaleString('fr-FR');
+      // Set last update time
+      document.getElementById("last-update").textContent =
+        new Date().toLocaleString("fr-FR");
     </script>
-</body>
+  </body>
 </html>

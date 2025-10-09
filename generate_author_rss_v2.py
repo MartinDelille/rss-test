@@ -3,12 +3,14 @@
 Improved RSS feed generator for Liberation.fr authors
 """
 
-import requests
-from bs4 import BeautifulSoup
+import re
 import xml.etree.ElementTree as ET
 from datetime import datetime
-import re
 from urllib.parse import urljoin
+
+import requests
+from bs4 import BeautifulSoup
+
 
 def extract_date_from_url(url):
     """Extract date from Liberation.fr URL pattern (YYYYMMDD)"""
@@ -32,6 +34,35 @@ def extract_date_from_url(url):
     
     # Fallback to current date if no date found in URL
     return datetime.now().strftime("%a, %d %b %Y %H:%M:%S GMT")
+
+def clean_article_title(raw_title):
+    """Clean article title by removing date and subscription indicators"""
+    if not raw_title:
+        return ""
+    
+    title = raw_title.strip()
+    
+    # Remove "Abonnés" at the end
+    title = re.sub(r'\s*Abonnés\s*$', '', title, flags=re.IGNORECASE)
+    
+    # Remove French date patterns at the end (like "19 août 2025", "1er juil. 2025", "15 juin 2025")
+    # Pattern for French dates: day + month + year
+    french_months = [
+        'janvier', 'février', 'mars', 'avril', 'mai', 'juin',
+        'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre',
+        'janv\.?', 'févr\.?', 'mars', 'avr\.?', 'mai', 'juin',
+        'juil\.?', 'août', 'sept\.?', 'oct\.?', 'nov\.?', 'déc\.?'
+    ]
+    
+    # Create pattern for French dates
+    months_pattern = '|'.join(french_months)
+    date_pattern = rf'\s*\d{{1,2}}(?:er)?\s+(?:{months_pattern})\s+\d{{4}}\s*$'
+    title = re.sub(date_pattern, '', title, flags=re.IGNORECASE)
+    
+    # Remove any trailing whitespace and punctuation
+    title = title.strip().rstrip('.,;:')
+    
+    return title
 
 def scrape_author_articles(author_url):
     """Scrape articles from an author's page with improved parsing"""
@@ -62,7 +93,10 @@ def scrape_author_articles(author_url):
             
             for link in links[:15]:  # Limit to avoid too much output
                 href = link.get('href', '')
-                title = link.get_text(strip=True)
+                raw_title = link.get_text(strip=True)
+                
+                # Clean the title by removing dates and "Abonnés"
+                title = clean_article_title(raw_title)
                 
                 # Skip if it's not an article URL or has no meaningful title
                 if (href and title and len(title) > 15 and 

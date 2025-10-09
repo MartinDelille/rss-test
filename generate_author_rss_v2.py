@@ -36,7 +36,7 @@ def extract_date_from_url(url):
     return datetime.now().strftime("%a, %d %b %Y %H:%M:%S GMT")
 
 def clean_article_title(raw_title):
-    """Clean article title by removing date and subscription indicators"""
+    """Clean article title by removing date and subscription indicators, and format category prefix"""
     if not raw_title:
         return ""
     
@@ -61,6 +61,26 @@ def clean_article_title(raw_title):
     
     # Remove any trailing whitespace and punctuation
     title = title.strip().rstrip('.,;:')
+    
+    # Add separator between category and title
+    # Look for common Liberation.fr categories at the beginning
+    categories = [
+        'Géopolitique', 'Politique', 'International', 'Économie', 'Culture', 'Sport',
+        'Société', 'Environnement', 'Sciences', 'Technologie', 'Reportage', 'Analyse',
+        'Portrait', 'Enquête', 'Chronique', 'Editorial', 'Opinion', 'Débat',
+        'Crimes de guerre', 'Cessez-le-feu', 'Militarisation', 'Attentats',
+        'Pots-de-vin', 'Indécence', 'Acharnement', 'Profil', 'Moyen-Orient'
+    ]
+    
+    # Check if title starts with any category
+    for category in categories:
+        # Use word boundary to avoid partial matches
+        pattern = rf'^({re.escape(category)})([A-ZÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞ].*)'
+        match = re.match(pattern, title)
+        if match:
+            category_part = match.group(1)
+            title_part = match.group(2)
+            return f"{category_part} - {title_part}"
     
     return title
 
@@ -158,16 +178,44 @@ def scrape_author_articles(author_url):
             'a[href*="/article"]', 'a[href*="/politique"]', 'a[href*="/international"]'
         ]
         
-        for selector in selectors_to_try:
-            links = soup.select(selector)
-            print(f"Selector '{selector}': found {len(links)} links")
-            
-            for link in links[:15]:  # Limit to avoid too much output
+        # Look for article containers that match the structure you provided
+        # <div direction="column" class="sc-dQEtJz khaXbp">
+        #   <div class="sc-imwsjW dVdAvS"><div color="#E60004" class="sc-cPiKLX kzHNcM">Analyse</div></div>
+        #   <div class="sc-imwsjW sc-lfYzqA dVdAvS feMKtu"><h2 class="sc-cPiKLX aKMuj" color="#1A1A1A">Avec son plan pour Gaza, Donald Trump tente le tout pour la paix</h2></div>
+        # </div>
+        
+        # Try to find article containers with the specific structure
+        article_containers = soup.select('div[direction="column"]')
+        print(f"Found {len(article_containers)} article containers")
+        
+        for container in article_containers[:15]:  # Limit to avoid too much output
+            try:
+                # Look for category in the first div
+                category_div = container.select_one('div div[class*="sc-cPiKLX"]')
+                category = category_div.get_text(strip=True) if category_div else ""
+                
+                # Look for title in h2
+                title_h2 = container.select_one('h2')
+                title_text = title_h2.get_text(strip=True) if title_h2 else ""
+                
+                # Look for the link (could be on the h2 or container)
+                link = container.select_one('a[href*="/20"]') or container.select_one('a[href*="/international/"]') or container.select_one('a[href*="/politique/"]')
+                
+                if not link:
+                    continue
+                    
                 href = link.get('href', '')
-                raw_title = link.get_text(strip=True)
+                
+                # Combine category and title with " - " separator
+                if category and title_text:
+                    title = f"{category} - {title_text}"
+                elif title_text:
+                    title = title_text
+                else:
+                    continue
                 
                 # Clean the title by removing dates and "Abonnés"
-                title = clean_article_title(raw_title)
+                title = clean_article_title(title)
                 
                 # Skip if it's not an article URL or has no meaningful title
                 if (href and title and len(title) > 15 and 
@@ -194,9 +242,53 @@ def scrape_author_articles(author_url):
                             'description': description,
                             'pubDate': pub_date
                         })
-            
-            if articles:
-                break  # Stop if we found articles with this selector
+                        
+            except Exception as e:
+                print(f"  Error processing container: {e}")
+                continue
+                
+        # Fallback to the old method if no articles found with the new structure
+        if not articles:
+            print("No articles found with new structure, trying fallback selectors...")
+            for selector in selectors_to_try:
+                links = soup.select(selector)
+                print(f"Selector '{selector}': found {len(links)} links")
+                
+                for link in links[:15]:  # Limit to avoid too much output
+                    href = link.get('href', '')
+                    raw_title = link.get_text(strip=True)
+                    
+                    # Clean the title by removing dates and "Abonnés"
+                    title = clean_article_title(raw_title)
+                    
+                    # Skip if it's not an article URL or has no meaningful title
+                    if (href and title and len(title) > 15 and 
+                        any(pattern in href for pattern in ['/2024/', '/2025/', '/international/', '/politique/'])):
+                        
+                        # Make sure it's a full URL
+                        if href.startswith('/'):
+                            full_url = urljoin('https://www.liberation.fr', href)
+                        else:
+                            full_url = href
+                        
+                        # Avoid duplicates
+                        if not any(art['url'] == full_url for art in articles):
+                            pub_date = extract_date_from_url(full_url)
+                            print(f"  Found article: {title[:80]}...")
+                            print(f"    Extracting description from: {full_url}")
+                            
+                            # Extract description from the article page
+                            description = extract_article_description(full_url)
+                            
+                            articles.append({
+                                'title': title[:200],  # Truncate very long titles
+                                'url': full_url,
+                                'description': description,
+                                'pubDate': pub_date
+                            })
+                
+                if articles:
+                    break  # Stop if we found articles with this selector
         
         # Remove duplicates and sort by title length (longer titles are usually better)
         unique_articles = []

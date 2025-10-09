@@ -64,6 +64,77 @@ def clean_article_title(raw_title):
     
     return title
 
+def extract_article_description(article_url):
+    """Extract article description/summary from the article page"""
+    try:
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
+        }
+        response = requests.get(article_url, headers=headers, timeout=10)
+        response.raise_for_status()
+        
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
+        # Try different methods to extract description
+        description = None
+        
+        # Method 1: Look for meta description
+        meta_desc = soup.find('meta', {'name': 'description'})
+        if meta_desc and meta_desc.get('content'):
+            description = meta_desc.get('content').strip()
+        
+        # Method 2: Look for Open Graph description
+        if not description:
+            og_desc = soup.find('meta', {'property': 'og:description'})
+            if og_desc and og_desc.get('content'):
+                description = og_desc.get('content').strip()
+        
+        # Method 3: Look for article lead/summary (common selectors)
+        if not description:
+            selectors_to_try = [
+                '.article-lead',
+                '.article-summary', 
+                '.lead',
+                '.summary',
+                '.intro',
+                '.article-intro',
+                'p.lead',
+                '.article-content p:first-of-type',
+                '.content p:first-of-type'
+            ]
+            
+            for selector in selectors_to_try:
+                element = soup.select_one(selector)
+                if element:
+                    text = element.get_text(strip=True)
+                    if text and len(text) > 50:  # Make sure it's substantial
+                        description = text
+                        break
+        
+        # Method 4: Fallback to first substantial paragraph in article
+        if not description:
+            paragraphs = soup.select('article p, .article p, .content p, main p')
+            for p in paragraphs:
+                text = p.get_text(strip=True)
+                if text and len(text) > 100:  # Look for substantial content
+                    description = text
+                    break
+        
+        # Clean and limit description
+        if description:
+            # Remove excessive whitespace
+            description = re.sub(r'\s+', ' ', description)
+            # Limit length
+            if len(description) > 500:
+                description = description[:497] + "..."
+            return description
+        
+        return "Description non disponible"
+        
+    except Exception as e:
+        print(f"  Warning: Could not extract description from {article_url}: {e}")
+        return "Description non disponible"
+
 def scrape_author_articles(author_url):
     """Scrape articles from an author's page with improved parsing"""
     try:
@@ -111,13 +182,18 @@ def scrape_author_articles(author_url):
                     # Avoid duplicates
                     if not any(art['url'] == full_url for art in articles):
                         pub_date = extract_date_from_url(full_url)
+                        print(f"  Found article: {title[:80]}...")
+                        print(f"    Extracting description from: {full_url}")
+                        
+                        # Extract description from the article page
+                        description = extract_article_description(full_url)
+                        
                         articles.append({
                             'title': title[:200],  # Truncate very long titles
                             'url': full_url,
-                            'description': title[:300],
+                            'description': description,
                             'pubDate': pub_date
                         })
-                        print(f"  Found article: {title[:80]}...")
             
             if articles:
                 break  # Stop if we found articles with this selector

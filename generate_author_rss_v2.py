@@ -10,6 +10,29 @@ from datetime import datetime
 import re
 from urllib.parse import urljoin
 
+def extract_date_from_url(url):
+    """Extract date from Liberation.fr URL pattern (YYYYMMDD)"""
+    # Look for pattern like 20250614 in the URL
+    date_match = re.search(r'(\d{8})', url)
+    if date_match:
+        date_str = date_match.group(1)
+        try:
+            # Parse the date string (YYYYMMDD)
+            year = int(date_str[:4])
+            month = int(date_str[4:6])
+            day = int(date_str[6:8])
+            
+            # Create datetime object
+            article_date = datetime(year, month, day, 12, 0, 0)  # Use noon as default time
+            
+            # Format for RSS (RFC 822 format)
+            return article_date.strftime("%a, %d %b %Y %H:%M:%S GMT")
+        except (ValueError, IndexError):
+            pass
+    
+    # Fallback to current date if no date found in URL
+    return datetime.now().strftime("%a, %d %b %Y %H:%M:%S GMT")
+
 def scrape_author_articles(author_url):
     """Scrape articles from an author's page with improved parsing"""
     try:
@@ -53,10 +76,12 @@ def scrape_author_articles(author_url):
                     
                     # Avoid duplicates
                     if not any(art['url'] == full_url for art in articles):
+                        pub_date = extract_date_from_url(full_url)
                         articles.append({
                             'title': title[:200],  # Truncate very long titles
                             'url': full_url,
-                            'description': title[:300]
+                            'description': title[:300],
+                            'pubDate': pub_date
                         })
                         print(f"  Found article: {title[:80]}...")
             
@@ -99,7 +124,7 @@ def generate_rss_feed(articles, author_name, author_url):
         ET.SubElement(item, "link").text = article['url']
         ET.SubElement(item, "description").text = article['description']
         ET.SubElement(item, "guid").text = article['url']
-        ET.SubElement(item, "pubDate").text = datetime.now().strftime("%a, %d %b %Y %H:%M:%S GMT")
+        ET.SubElement(item, "pubDate").text = article['pubDate']
     
     # Format the XML with proper indentation
     ET.indent(rss, space="  ", level=0)

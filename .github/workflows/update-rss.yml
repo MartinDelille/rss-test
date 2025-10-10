@@ -43,7 +43,7 @@ jobs:
 
       - name: Generate RSS feed
         run: |
-          python generate_author_rss_v2.py
+          python generate_author_rss.py
 
       - name: Setup Pages
         uses: actions/configure-pages@v3

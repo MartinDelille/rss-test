@@ -36,7 +36,7 @@ def extract_date_from_url(url):
     return datetime.now().strftime("%a, %d %b %Y %H:%M:%S GMT")
 
 def clean_article_title(raw_title):
-    """Clean article title by removing date and subscription indicators, and format category prefix"""
+    """Clean article title by removing date and subscription indicators"""
     if not raw_title:
         return ""
     
@@ -45,42 +45,29 @@ def clean_article_title(raw_title):
     # Remove "Abonnés" at the end
     title = re.sub(r'\s*Abonnés\s*$', '', title, flags=re.IGNORECASE)
     
-    # Remove French date patterns at the end (like "19 août 2025", "1er juil. 2025", "15 juin 2025")
-    # Pattern for French dates: day + month + year
-    french_months = [
-        'janvier', 'février', 'mars', 'avril', 'mai', 'juin',
-        'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre',
-        'janv\.?', 'févr\.?', 'mars', 'avr\.?', 'mai', 'juin',
-        'juil\.?', 'août', 'sept\.?', 'oct\.?', 'nov\.?', 'déc\.?'
-    ]
-    
-    # Create pattern for French dates
-    months_pattern = '|'.join(french_months)
-    date_pattern = rf'\s*\d{{1,2}}(?:er)?\s+(?:{months_pattern})\s+\d{{4}}\s*$'
+    # Generic pattern to remove dates at the end (any date-like pattern)
+    # Pattern matches: number + word + number (like "19 août 2025", "1er juil. 2025", "15 June 2025")
+    date_pattern = r'\s*\d{1,2}(?:er|st|nd|rd|th)?\s+[a-zA-ZàáâãäåæçèéêëìíîïðñòóôõöøùúûüýþÿœÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞŸŒ\.]+\s+\d{4}\s*$'
     title = re.sub(date_pattern, '', title, flags=re.IGNORECASE)
     
     # Remove any trailing whitespace and punctuation
     title = title.strip().rstrip('.,;:')
     
-    # Add separator between category and title
-    # Look for common Liberation.fr categories at the beginning
-    categories = [
-        'Géopolitique', 'Politique', 'International', 'Économie', 'Culture', 'Sport',
-        'Société', 'Environnement', 'Sciences', 'Technologie', 'Reportage', 'Analyse',
-        'Portrait', 'Enquête', 'Chronique', 'Editorial', 'Opinion', 'Débat',
-        'Crimes de guerre', 'Cessez-le-feu', 'Militarisation', 'Attentats',
-        'Pots-de-vin', 'Indécence', 'Acharnement', 'Profil', 'Moyen-Orient'
-    ]
+    # Generic detection of category/section prefix
+    # Look for pattern: Word(s) followed immediately by uppercase letter (indicating concatenation)
+    # This detects patterns like: "GéopolitiqueDétenu", "AnalyseAvec", "Crimes de guerreGaza"
+    prefix_pattern = r'^([A-ZÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞŸŒ][a-zA-Zàáâãäåæçèéêëìíîïðñòóôõöøùúûüýþÿœ\s\-]+?)([A-ZÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞŸŒ][a-zA-Zàáâãäåæçèéêëìíîïðñòóôõöøùúûüýþÿœ].*)$'
     
-    # Check if title starts with any category
-    for category in categories:
-        # Use word boundary to avoid partial matches
-        pattern = rf'^({re.escape(category)})([A-ZÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞ].*)'
-        match = re.match(pattern, title)
-        if match:
-            category_part = match.group(1)
-            title_part = match.group(2)
-            return f"{category_part} - {title_part}"
+    match = re.match(prefix_pattern, title)
+    if match:
+        prefix = match.group(1).strip()
+        main_title = match.group(2).strip()
+        
+        # Only apply this if the prefix looks like a reasonable category/section
+        # (not too long, not starting with common article words)
+        if (len(prefix) <= 25 and 
+            not prefix.lower().startswith(('le ', 'la ', 'les ', 'un ', 'une ', 'des ', 'du ', 'de la ', 'avec ', 'pour ', 'dans '))):
+            return f"{prefix} - {main_title}"
     
     return title
 
@@ -190,25 +177,32 @@ def scrape_author_articles(author_url):
         
         for container in article_containers[:15]:  # Limit to avoid too much output
             try:
-                # Look for category in the first div
-                category_div = container.select_one('div div[class*="sc-cPiKLX"]')
-                category = category_div.get_text(strip=True) if category_div else ""
+                # Get all direct child divs of the container
+                child_divs = [div for div in container.find_all('div', recursive=False)]
                 
-                # Look for title in h2
-                title_h2 = container.select_one('h2')
+                if len(child_divs) < 2:
+                    continue
+                
+                # First child div should contain the section/category
+                first_div = child_divs[0]
+                section_text = first_div.get_text(strip=True)
+                
+                # Second child div should contain the h2 title
+                second_div = child_divs[1] 
+                title_h2 = second_div.select_one('h2')
                 title_text = title_h2.get_text(strip=True) if title_h2 else ""
                 
-                # Look for the link (could be on the h2 or container)
+                # Look for the link (could be on the h2 or anywhere in container)
                 link = container.select_one('a[href*="/20"]') or container.select_one('a[href*="/international/"]') or container.select_one('a[href*="/politique/"]')
                 
-                if not link:
+                if not link or not title_text:
                     continue
                     
                 href = link.get('href', '')
                 
-                # Combine category and title with " - " separator
-                if category and title_text:
-                    title = f"{category} - {title_text}"
+                # Combine section and title with " - " separator if both exist
+                if section_text and title_text:
+                    title = f"{section_text} - {title_text}"
                 elif title_text:
                     title = title_text
                 else:
